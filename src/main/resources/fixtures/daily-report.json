@@ -1,0 +1,13 @@
+{
+  "shopId": "mock-shop",
+  "date": "2026-09-18",
+  "grossSales": 100.00,
+  "discounts": 5.00,
+  "returns": 10.00,
+  "tax": 7.01,
+  "tips": 0.00,
+  "giftCardsSold": 20.00,
+  "giftCardsRedeemed": 15.00,
+  "fees": 3.00,
+  "payments": { "card": 97.01 }
+}
