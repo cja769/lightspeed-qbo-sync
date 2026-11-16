@@ -21,6 +21,7 @@ final class LightspeedSalesClient implements DailySalesSummaryProvider {
     private static final BigDecimal ZERO = BigDecimal.ZERO;
     private final JsonHttp http;
     private final URI search;
+    private final String salesBase;
     private final String authorization;
     private final String outlet;
     private final ZoneId zone;
@@ -28,7 +29,9 @@ final class LightspeedSalesClient implements DailySalesSummaryProvider {
     LightspeedSalesClient(JsonHttp http, String shop, String token, String outlet, ZoneId zone) {
         if (!shop.matches("[a-z0-9-]+")) throw new IllegalArgumentException("Invalid Lightspeed shop prefix");
         this.http = http;
-        this.search = URI.create("https://" + shop + ".retail.lightspeed.app/api/2026-10/search");
+        var apiBase = "https://" + shop + ".retail.lightspeed.app/api/2026-10/";
+        this.search = URI.create(apiBase + "search");
+        this.salesBase = apiBase + "sales/";
         this.authorization = "Bearer " + token;
         this.outlet = outlet;
         this.zone = zone;
@@ -45,9 +48,19 @@ final class LightspeedSalesClient implements DailySalesSummaryProvider {
         for (int offset = 0; ; ) {
             var response = http.get(URI.create(search + query + "&offset=" + offset), authorization);
             var sales = array(response, "data");
-            for (var sale : sales) {
-                var id = text(sale, "id");
+            for (var result : sales) {
+                var id = text(result, "id");
                 if (!seen.add(id)) throw new IllegalStateException("Duplicate Lightspeed sale in paginated response");
+                var sale = result;
+                if (!result.hasNonNull("date") || !result.path("source").isObject()
+                        || !result.path("totals").isObject() || !result.path("payments").isArray()
+                        || !result.path("line_items").isArray()) {
+                    var responseSale = http.get(URI.create(salesBase + encode(id)), authorization);
+                    sale = responseSale.has("data") ? responseSale.path("data") : responseSale;
+                    if (!id.equals(text(sale, "id"))) {
+                        throw new IllegalStateException("Lightspeed sale detail ID does not match search result");
+                    }
+                }
                 var timestamp = Instant.parse(text(sale, "date"));
                 if (timestamp.equals(end)) continue;
                 if (timestamp.isBefore(start) || timestamp.isAfter(end)
