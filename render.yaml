@@ -1,0 +1,30 @@
+services:
+  - type: worker
+    name: lightspeed-qbo-sync
+    runtime: docker
+    repo: https://github.com/cja769/lightspeed-qbo-sync
+    branch: main
+    plan: starter
+    autoDeployTrigger: "off"
+    disk:
+      name: lightspeed-sync-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: SYNC_RENDER_WORKER
+        value: "true"
+
+  - type: worker
+    name: moego-qbo-sync
+    runtime: docker
+    repo: https://github.com/cja769/moego-qbo-sync
+    branch: main
+    plan: starter
+    autoDeployTrigger: "off"
+    disk:
+      name: moego-sync-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: SYNC_RENDER_WORKER
+        value: "true"
